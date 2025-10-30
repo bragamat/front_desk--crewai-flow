@@ -1,0 +1,21 @@
+[project]
+name = "front_desk"
+version = "0.1.0"
+description = "front_desk using crewAI"
+authors = [{ name = "Mateus Braga", email = "mateus@bragamat.com" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[tools]>=0.203.1,<1.0.0",
+]
+
+[project.scripts]
+kickoff = "front_desk.main:kickoff"
+run_crew = "front_desk.main:kickoff"
+plot = "front_desk.main:plot"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "flow"
