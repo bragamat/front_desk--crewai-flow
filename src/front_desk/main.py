@@ -3,6 +3,10 @@ from random import randint
 from pydantic import BaseModel
 from crewai.flow import Flow, listen, start
 
+
+from front_desk.crews import TranslationCrew
+
+
 class FrontDeskState(BaseModel):
     sentence_count: int = 1
     poem: str = ""
@@ -12,8 +16,9 @@ class FrontDeskFlow(Flow[FrontDeskState]):
 
     @start()
     def run(self):
-        print("Generating sentence count")
-        self.state.sentence_count = randint(1, 5)
+        crew = TranslationCrew().crew()
+
+        crew.kickoff(inputs={})
 
     @listen(run)
     def save_poem(self):

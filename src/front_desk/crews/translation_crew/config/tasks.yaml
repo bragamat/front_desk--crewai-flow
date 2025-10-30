@@ -1,0 +1,94 @@
+detect_language:
+  description: >
+    Analyze the user's input: "{content}"
+    
+    Previous conversation context: {history}
+    
+    Identify and determine:
+    1. The language used in the user's message
+    2. The formality level (formal, informal, casual)
+    3. The cultural context if relevant
+    4. Any specific linguistic nuances or dialects
+    5. The appropriate language for response (same as input)
+    
+    This will guide how we respond to maintain natural conversation flow.
+  expected_output: >
+    A comprehensive language analysis containing:
+    - Detected language (e.g., English, Spanish, French, etc.)
+    - Formality level and tone
+    - Cultural context notes
+    - Recommended response language and style
+  agent: language_detector
+
+engage_conversation:
+  description: >
+    Based on the user's message: "{content}"
+    
+    Language context: Use the detected language and formality level
+    Conversation history: {history}
+    
+    Engage naturally as a conversation partner would:
+    
+    For GREETINGS (hello, hi, good morning, etc.):
+    - Respond warmly and personally
+    - Ask how you can help or how they're doing
+    - Match their energy level
+    
+    For FAREWELLS (goodbye, see you, bye, etc.):
+    - Acknowledge gracefully
+    - Offer future assistance
+    - End on a positive note
+    
+    For QUESTIONS or REQUESTS:
+    - Provide helpful, accurate information
+    - Show genuine interest in helping
+    - Ask clarifying questions if needed
+    
+    For CASUAL CONVERSATION:
+    - Engage authentically
+    - Show appropriate emotions
+    - Use humor when suitable
+    
+    Remember: You're having a real conversation. Be genuine, warm, and helpful.
+    Respond in the SAME LANGUAGE as the user input.
+  expected_output: >
+    A natural, conversational response that:
+    - Directly addresses the user's message
+    - Feels authentic and human-like
+    - Maintains appropriate tone and formality
+    - Is in the same language as the user's input
+    - Continues the conversation naturally
+  agent: conversation_partner
+  context:
+    - detect_language
+
+optimize_response:
+  description: >
+    Review and enhance the conversation response for: "{content}"
+    
+    Language requirements from detection phase
+    Conversation history: {history}
+    
+    Ensure the response:
+    1. Sounds completely natural and conversational
+    2. Removes any robotic or scripted elements
+    3. Maintains the correct language throughout
+    4. Includes appropriate conversational markers (um, well, you know, etc.) where natural
+    5. Has proper emotional tone for the context
+    6. Flows smoothly from the conversation history
+    7. Feels like it comes from a real, caring person
+    8. Is culturally appropriate
+    9. Maintains consistency with previous responses
+    
+    Polish without over-editing - keep it genuine.
+  expected_output: >
+    A final, optimized response that:
+    - Feels completely natural and human
+    - Maintains conversational flow
+    - Is contextually and culturally appropriate
+    - Responds in the user's language
+    - Sounds like a real person, not an AI
+  agent: response_optimizer
+  context:
+    - detect_language
+    - engage_conversation
