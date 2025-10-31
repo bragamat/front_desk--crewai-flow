@@ -1,36 +1,36 @@
 #!/usr/bin/env python
-from random import randint
-from pydantic import BaseModel
 from crewai.flow import Flow, listen, start
 
-
 from front_desk.crews import TranslationCrew
+from front_desk.models import FrontDeskFlowState
 
-
-class FrontDeskState(BaseModel):
-    sentence_count: int = 1
-    poem: str = ""
-
-
-class FrontDeskFlow(Flow[FrontDeskState]):
+class FrontDeskFlow(Flow[FrontDeskFlowState]):
 
     @start()
     def run(self):
         crew = TranslationCrew().crew()
 
-        crew.kickoff(inputs={})
+        result = crew.kickoff(inputs={
+            "content": self.state.message.content,
+            "history": self.state.history,
+        })
+
+        print("result: ", result)
+
 
     @listen(run)
-    def save_poem(self):
-        print("Saving poem")
-        with open("poem.txt", "w") as f:
-            f.write(self.state.poem)
+    def output(self):
+        return self.state
 
 
 def kickoff():
     poem_flow = FrontDeskFlow()
-    poem_flow.kickoff()
-
+    poem_flow.kickoff(inputs={
+        "message": {
+            "content": "Eai, tudo bem? cara, pode me ajuar a traduzir esse texto para o ingles?",
+            "role": "user"
+        }
+    })
 
 def plot():
     poem_flow = FrontDeskFlow()
