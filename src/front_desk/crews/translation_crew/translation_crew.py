@@ -5,6 +5,8 @@ from crewai import Agent, Task, Crew, Process
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, task, crew
 
+from front_desk.crews.translation_crew.models import TranslationCrewOutput
+
 @CrewBase
 class TranslationCrew:
     agents: List[BaseAgent]
@@ -19,7 +21,6 @@ class TranslationCrew:
         """Language Detector Agent"""
         return Agent(
             config=self.agents_config["language_detector"], # type: ignore
-            verbose=False
         )
 
     @task
@@ -27,6 +28,7 @@ class TranslationCrew:
         """Detect Language Task"""
         return Task(
             config=self.tasks_config["detect_language"], # type: ignore
+            output_pydantic=TranslationCrewOutput
         )
 
     @crew

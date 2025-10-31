@@ -3,3 +3,6 @@ __pycache__/
 lib/
 .DS_Store
 .venv/
+
+**/__pycache__/
+
