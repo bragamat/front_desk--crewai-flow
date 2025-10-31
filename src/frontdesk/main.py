@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 from crewai.flow import Flow, listen, start
 
-from front_desk.crews import TranslationCrew
-from front_desk.models import FrontDeskFlowState
+from frontdesk.crews import TranslationCrew
+from frontdesk.models import FrontDeskFlowState
 
 class FrontDeskFlow(Flow[FrontDeskFlowState]):
 

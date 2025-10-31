@@ -803,7 +803,7 @@ wheels = [
 ]
 
 [[package]]
-name = "front-desk"
+name = "frontdesk"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

@@ -1,5 +1,5 @@
 [project]
-name = "front_desk"
+name = "frontdesk"
 version = "0.1.0"
 description = "front_desk using crewAI"
 authors = [{ name = "Mateus Braga", email = "mateus@bragamat.com" }]
@@ -9,9 +9,9 @@ dependencies = [
 ]
 
 [project.scripts]
-kickoff = "front_desk.main:kickoff"
-run_crew = "front_desk.main:kickoff"
-plot = "front_desk.main:plot"
+kickoff = "frontdesk.main:kickoff"
+run_crew = "frontdesk.main:kickoff"
+plot = "frontdesk.main:plot"
 
 [build-system]
 requires = ["hatchling"]

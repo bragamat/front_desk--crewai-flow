@@ -5,7 +5,7 @@ from crewai import Agent, Task, Crew, Process
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, task, crew
 
-from front_desk.crews.translation_crew.models import TranslationCrewOutput
+from frontdesk.crews.translation_crew.models import TranslationCrewOutput
 
 @CrewBase
 class TranslationCrew:
