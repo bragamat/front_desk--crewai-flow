@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from crewai import CrewOutput
-from crewai.flow import Flow, listen, start
+from crewai.flow import Flow, listen, router, start
 
 from frontdesk.crews import TranslationCrew, SecretaryCrew 
 from frontdesk.models import FrontDeskFlowState
@@ -33,20 +33,32 @@ class FrontDeskFlow(Flow[FrontDeskFlowState]):
             "message": self.state.message.translation,
         })
 
-        if result.pydantic:
-            translator = TranslationCrew(reset=True).crew()
-            translation: CrewOutput = translator.kickoff(inputs={
-                "content": result['answer'],
-                "history": [m.model_dump() for m in self.state.history],
-            })
 
-            self.state.add_assistant_message(
-                content=result['answer'],
-                translation=translation['output'],
-            )
+        if result.pydantic is None:
+            raise ValueError("Expected pydantic output from SecretaryCrew")
+
+        translator = TranslationCrew(reset=True).crew()
+        translation: CrewOutput = translator.kickoff(inputs={
+            "content": result['answer'],
+            "history": [m.model_dump() for m in self.state.history],
+        })
+
+        self.state.add_assistant_message(
+            content=result['answer'],
+            translation=translation['output'],
+        )
 
         print("Assistant's answer:", result['answer'])
         return result['answer']
+
+    @router(answer_user)
+    def decide_next(self, answer: str):
+        if "bye" in answer.lower():
+            print("Conversation ended.")
+            return None  # End the flow
+        else:
+            return self.translate_user_message  # Listen for the next user message
+
 
 
 def kickoff():

@@ -11,10 +11,32 @@ class Message(BaseModel):
     
     model_config = ConfigDict(extra='allow')
 
+class Actionable(BaseModel):
+    done: bool = Field(default=False, description="Whether the action has been completed")
+    action: str = Field(
+        default_factory=str,
+        description="""
+          The action to be taken. This could be one of several predefined actions such as:
+          - "search_topic"
+          - "send_notification"
+        """
+    )
+    started_at: Optional[str] = Field(default=None, description="The timestamp when the action was started")
+    completed_at: Optional[str] = Field(default=None, description="The timestamp when the action was completed")
+
+
+    # parameters: Optional[dict] = Field(default_factory=dict, description="The parameters for the action")
+    model_config = ConfigDict(extra='allow')
+
 class FrontDeskFlowState(BaseModel):
     message: Message = Field(
         default_factory=Message,
         description="The latest message exchanged at the front desk"
+    )
+
+    actions: Optional[List[Actionable]] = Field(
+        default_factory=list,
+        description="The list of actions taken at the front desk"
     )
 
     history: List[Message] = Field(
