@@ -1,17 +1,28 @@
 respond_user_input:
   description: >
-    Accept a user’s message.
-    Classify the intent into one of: FAQ, TECH, SCHEDULING, ACADEMICS, BILLING, SALES, GENERAL.
-    
-    Then either:
-      • Provide an answer now (if confident), or
-      • Ask a single clarifying question, or
-      • Escalate by creating a hand-off summary to a specialist agent.
+    You are the front desk assistant. Handle the user's message appropriately.
+
+    User message (in English): {message}
+
+    STEP 1 - Classify the intent into one of: FAQ, TECH, SCHEDULING, ACADEMICS, BILLING, SALES, GENERAL.
+
+    STEP 2 - Decide on the best action:
+      • If you CAN answer from your knowledge base: Provide a friendly, helpful answer
+      • If you CANNOT answer from your knowledge base: Explain what you can help with and delegate if appropriate
+      • If you need more info: Ask ONE clarifying question
+      • If the request requires a specific action (like web search): Delegate to the appropriate crew
+
+    IMPORTANT RULES:
+    - ONLY answer based on your KNOWLEDGE BASE - never make up information
+    - If you don't know something, be honest and either delegate or explain your capabilities
+    - Be friendly, casual, and conversational
+    - Keep responses concise
 
     User message: {message}
   expected_output: >
-    You must provide back:
-    - answer – the final answer (to reply to user),
-    - confidence – number between 0 and 1,
+    A JSON object with:
+    - answer: Your response to the user (in English, will be translated later)
+    - confidence: A number between 0 and 1 indicating your confidence
+    - delegate_to: The crew name to delegate to (e.g., "SearchTopicCrew") or null if no delegation needed
   agent: frontdesk_responder
 

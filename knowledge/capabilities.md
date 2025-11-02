@@ -1,4 +1,2 @@
 Can act on:
-- Schedule study blocks.
-- Create calendar events.
-- Handle FAQs about ZeerAI/CrewAI workflows.
+- Search topic on the web

@@ -1,35 +1,49 @@
 detect_language:
   description: >
-    Analyze the user's input: "{content}"
-    
+    You are a translation specialist. Your job is to translate the user's message to English.
+
+    User's input: "{content}"
     Previous conversation context: {history}
-    
-    Identify and determine:
+
+    IMPORTANT INSTRUCTIONS:
+    - ONLY translate the user's message to English - DO NOT answer their question
+    - DO NOT provide any information or responses to their query
+    - ONLY perform translation, not question answering
+    - Keep the meaning and intent exactly as the user expressed it
+    - If the message is already in English, keep it as-is in the output field
+
+    Additionally, analyze:
     1. The language used in the user's message
     2. The formality level (formal, informal, casual)
     3. The cultural context if relevant
-    4. Any specific linguistic nuances or dialects
-    5. The appropriate language for response (same as input)
-    6. A translated version in English
-    
-    This will guide how we respond to maintain natural conversation flow.
   expected_output: >
-    A comprehensive language analysis containing:
-    - Detected language (e.g., English, Spanish, French, etc.)
-    - Formality level and tone
-    - Cultural context notes
-    - Recommended response language and style
+    A JSON object with:
+    - output: The ENGLISH TRANSLATION of the user's message (NOT an answer to their question)
+    - original: The original user input
+    - language: Detected language (e.g., Portuguese, Spanish, English, etc.)
+    - formality_level: The formality level (casual, formal, informal)
+    - cultural_notes: Brief cultural context notes
   agent: language_detector
 
 translate_to_original:
   description: >
-    Analyze the input: "{content}"
-    
+    You are a translation specialist. Translate the assistant's English response back to the user's original language.
+
+    Assistant's English response: "{content}"
     Previous conversation context: {history}
-    
-    Generate the translation back to the original language
+
+    IMPORTANT INSTRUCTIONS:
+    - Look at the conversation history to determine the user's original language
+    - Translate the assistant's response from English to that language
+    - Maintain the same tone, formality, and friendliness
+    - Keep the translation natural and culturally appropriate
   expected_output: >
-    A literal and direct translation from english to the original language containing.
+    A JSON object with:
+    - output: The translation of the assistant's response in the user's original language
+    - original: The English response that was translated
+    - language: The target language for the translation
+    - formality_level: The formality level maintained
+    - cultural_notes: Any relevant cultural adaptation notes
   agent: language_detector
 
 

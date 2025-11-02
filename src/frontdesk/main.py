@@ -29,27 +29,37 @@ class FrontDeskFlow(Flow[FrontDeskFlowState]):
     @listen(translate_user_message)
     def answer_user(self):
         crew = SecretaryCrew().crew()
-        result: CrewOutput = crew.kickoff(inputs={
+        secretary: CrewOutput = crew.kickoff(inputs={
             "message": self.state.message.translation,
         })
 
-
-        if result.pydantic is None:
+        if secretary.pydantic is None:
             raise ValueError("Expected pydantic output from SecretaryCrew")
 
         translator = TranslationCrew(reset=True).crew()
         translation: CrewOutput = translator.kickoff(inputs={
-            "content": result['answer'],
+            "content": secretary['answer'],
             "history": [m.model_dump() for m in self.state.history],
         })
 
         self.state.add_assistant_message(
-            content=result['answer'],
+            content=secretary['answer'],
             translation=translation['output'],
         )
 
-        print("Assistant's answer:", result['answer'])
-        return result['answer']
+        if secretary.pydantic.delegate_to and self.state.actions:  # type: ignore
+            self.state.actions.add_action(
+                action=secretary['delegate_to'],
+            )
+
+        print("\n" + "="*80)
+        print("ENGLISH ANSWER:", secretary['answer'])
+        print("TRANSLATED ANSWER:", translation['output'])
+        if secretary['delegate_to']:
+            print("DELEGATED TO:", secretary['delegate_to'])
+        print("="*80 + "\n")
+
+        return secretary['answer']
 
     @router(answer_user)
     def decide_next(self, answer: str):
@@ -65,8 +75,8 @@ def kickoff():
     poem_flow = FrontDeskFlow()
     poem_flow.kickoff(inputs={
         "message": {
-            "content": """Eai, tudo bem? cara, pode me ajuar a traduzir esse texto
-                para o ingles? ou melhor pode me falar quais sao suas capacidades?""",
+            "content": """Eai, tudo bem? cara, queria saber quem ganhou o ultimo
+            Mr. Olympia na categoria classic e Open""",
             "role": "user"
         }
     })
