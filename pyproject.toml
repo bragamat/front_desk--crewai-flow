@@ -5,7 +5,9 @@ description = "front_desk using crewAI"
 authors = [{ name = "Mateus Braga", email = "mateus@bragamat.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
+    "crewai-tools[serpapi]>=0.76.0",
     "crewai[tools]>=0.203.1,<1.0.0",
+    "qdrant-client>=1.15.1",
 ]
 
 [project.scripts]
