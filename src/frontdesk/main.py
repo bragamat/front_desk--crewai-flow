@@ -37,25 +37,15 @@ class FrontDeskFlow(Flow[FrontDeskFlowState]):
         if secretary.pydantic is None:
             raise ValueError("Expected pydantic output from SecretaryCrew")
 
-        # Store delegation info in state for router to check
         delegation = secretary['delegate_to']
 
         if delegation:
-            # Add action to track delegation
             if self.state.actions:  # type: ignore
                 self.state.actions.add_action(action=delegation)
 
-            print("\n" + "="*80)
-            print("SECRETARY RESPONSE:", secretary['answer'])
-            print("DELEGATED TO:", delegation)
-            print("="*80 + "\n")
-
-            # Don't translate yet - we'll translate after delegation completes
-            # Store the intermediate answer in state
             self.state.message.content = secretary['answer']
-            return delegation  # Return delegation target for router
+            return delegation
 
-        # No delegation - provide final answer
         translator = TranslationCrew(reset=True).crew()
         translation: CrewOutput = translator.kickoff(inputs={
             "content": secretary['answer'],
@@ -66,41 +56,22 @@ class FrontDeskFlow(Flow[FrontDeskFlowState]):
             content=secretary['answer'],
             translation=translation['output'],
         )
-
-        print("\n" + "="*80)
-        print("ENGLISH ANSWER:", secretary['answer'])
-        print("TRANSLATED ANSWER:", translation['output'])
-        print("="*80 + "\n")
-
-        return secretary['answer']
+        return secretary['delegate_to']
 
     @router(answer_user)
     def decide_next(self, result: str):
-        """Router that handles delegation and conversation flow"""
+        """Router that handles delegation based on crew name from secretary"""
 
-        # Normalize the result for comparison
-        normalized_result = result.lower().replace('_', '').replace(' ', '')
+        if result == "SearchTopicCrew":
+            return "search_topic_crew"
 
-        # Check if this is a delegation request
-        if normalized_result in ['searchtopicrew', 'searchtopic']:
-            print("🔄 Routing to search topic handler...")
-            return self.handle_search_topic
 
-        # Add more delegation handlers here as needed
-        # elif normalized_result == 'schedulingcrew':
-        #     return self.handle_scheduling
+        # No delegation, conversation complete
+        return None
 
-        # Check if conversation should end
-        if "bye" in result.lower():
-            print("Conversation ended.")
-            return None  # End the flow
-
-        # Continue conversation - wait for next user message
-        return self.translate_user_message
-
-    @listen(decide_next)
+    @listen("search_topic_crew")
     def handle_search_topic(self):
-        """Handle search topic delegation"""
+        """Handle search topic delegation and synthesize answer"""
         print("\n" + "="*80)
         print("🔍 EXECUTING SEARCH TOPIC CREW")
         print("="*80 + "\n")
@@ -116,34 +87,28 @@ class FrontDeskFlow(Flow[FrontDeskFlowState]):
             "current_year": current_year,
         })
 
-        # Store search results in state for secretary to use
+        # Store search results in state
         print("\n" + "="*80)
         print("📊 SEARCH RESULTS:")
         print(search_result.raw)
         print("="*80 + "\n")
 
         # Store search results temporarily for the next step
-        # We'll use this to pass to the secretary
-        self.state.message.content = search_result.raw
+        search_results = search_result.raw
 
         # Add search results to history for context
         self.state.add_assistant_message(
-            content=f"[SEARCH RESULTS FOR: {topic}]\n\n{search_result.raw}",
+            content=f"[SEARCH RESULTS FOR: {topic}]\n\n{search_results}",
             translation=None,
         )
 
-        # Now route to provide final answer with search context
-        return self.provide_final_answer_with_context()
-
-    def provide_final_answer_with_context(self):
-        """Secretary provides final answer using search results"""
+        # Now synthesize answer using search results
         print("\n" + "="*80)
         print("💬 SECRETARY PROVIDING FINAL ANSWER WITH CONTEXT")
         print("="*80 + "\n")
 
-        # Get the original question and search results
+        # Get the original question
         original_question = self.state.history[0].translation if self.state.history else "the user's question"
-        search_results = self.state.message.content
 
         # Ask secretary to synthesize answer using search results
         crew = SecretaryCrew().crew()
@@ -177,16 +142,26 @@ Based on these search results, provide a clear, concise answer to the user's que
         print("TRANSLATED ANSWER:", translation['output'])
         print("="*80 + "\n")
 
-        return secretary['answer']
 
 
 
 def kickoff():
+    """
+    Example kickoff - demonstrates multilingual support.
+    The flow automatically detects the input language and responds in the same language.
+
+    Try any language:
+    - Portuguese: "Quem ganhou o ultimo Mr. Olympia?"
+    - Spanish: "¿Quién ganó el último Mr. Olympia?"
+    - French: "Qui a gagné le dernier Mr. Olympia?"
+    - German: "Wer hat den letzten Mr. Olympia gewonnen?"
+    - English: "Who won the last Mr. Olympia?"
+    """
     poem_flow = FrontDeskFlow()
     poem_flow.kickoff(inputs={
         "message": {
-            "content": """Eai, tudo bem? cara, queria saber quem ganhou o ultimo
-            Mr. Olympia na categoria classic e Open""",
+            # Example in Spanish (change to any language to test)
+            "content": "Hola, ¿quién ganó el último Mr. Olympia en la categoría Classic Physique?",
             "role": "user"
         }
     })
