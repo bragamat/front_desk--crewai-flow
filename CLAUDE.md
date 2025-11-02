@@ -93,6 +93,52 @@ The `knowledge/` directory contains markdown files loaded as knowledge sources:
 - `capabilities.md` - What the system can do (e.g., "Search topic on the web")
 - `actions.md` - Available actions and which crew handles them
 
+## Delegation Architecture
+
+### How Delegation Works
+
+The flow uses a router-based delegation system that allows the SecretaryCrew to delegate tasks to specialized crews:
+
+**Normal Flow (No Delegation):**
+```
+translate_user_message → answer_user → decide_next → (end/continue)
+```
+
+**Delegation Flow:**
+```
+translate_user_message → answer_user (returns delegation target) →
+decide_next (routes to handler) → handle_search_topic (executes specialist crew) →
+provide_final_answer_with_context (secretary synthesizes) → (translation & return)
+```
+
+### Key Implementation Details
+
+1. **answer_user()**: When SecretaryCrew sets `delegate_to`, it returns the delegation target string instead of translating immediately
+2. **decide_next()**: Router checks the return value and routes to appropriate handler (e.g., `handle_search_topic`)
+3. **Handler method**: Executes specialist crew, stores results in `self.state.message.content`
+4. **provide_final_answer_with_context()**: SecretaryCrew receives search results directly in the message and synthesizes final answer
+
+### Critical: Passing Context to Crews
+
+CrewAI crews don't automatically access flow state or history. You must explicitly pass data:
+
+```python
+# ❌ WRONG - Secretary won't see search results
+secretary: CrewOutput = crew.kickoff(inputs={
+    "message": "Synthesize the search results"
+})
+
+# ✅ CORRECT - Include results directly in message
+secretary: CrewOutput = crew.kickoff(inputs={
+    "message": f"""User asked: "{question}"
+
+Search results:
+{search_results}
+
+Provide answer based on above."""
+})
+```
+
 ## Development Patterns
 
 ### Adding a New Crew

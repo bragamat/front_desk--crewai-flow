@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+from datetime import datetime
 from crewai import CrewOutput
 from crewai.flow import Flow, listen, router, start
 
-from frontdesk.crews import TranslationCrew, SecretaryCrew 
+from frontdesk.crews import TranslationCrew, SecretaryCrew, SearchTopicCrew
 from frontdesk.models import FrontDeskFlowState
 
 class FrontDeskFlow(Flow[FrontDeskFlowState]):
@@ -36,6 +37,25 @@ class FrontDeskFlow(Flow[FrontDeskFlowState]):
         if secretary.pydantic is None:
             raise ValueError("Expected pydantic output from SecretaryCrew")
 
+        # Store delegation info in state for router to check
+        delegation = secretary['delegate_to']
+
+        if delegation:
+            # Add action to track delegation
+            if self.state.actions:  # type: ignore
+                self.state.actions.add_action(action=delegation)
+
+            print("\n" + "="*80)
+            print("SECRETARY RESPONSE:", secretary['answer'])
+            print("DELEGATED TO:", delegation)
+            print("="*80 + "\n")
+
+            # Don't translate yet - we'll translate after delegation completes
+            # Store the intermediate answer in state
+            self.state.message.content = secretary['answer']
+            return delegation  # Return delegation target for router
+
+        # No delegation - provide final answer
         translator = TranslationCrew(reset=True).crew()
         translation: CrewOutput = translator.kickoff(inputs={
             "content": secretary['answer'],
@@ -47,27 +67,117 @@ class FrontDeskFlow(Flow[FrontDeskFlowState]):
             translation=translation['output'],
         )
 
-        if secretary.pydantic.delegate_to and self.state.actions:  # type: ignore
-            self.state.actions.add_action(
-                action=secretary['delegate_to'],
-            )
-
         print("\n" + "="*80)
         print("ENGLISH ANSWER:", secretary['answer'])
         print("TRANSLATED ANSWER:", translation['output'])
-        if secretary['delegate_to']:
-            print("DELEGATED TO:", secretary['delegate_to'])
         print("="*80 + "\n")
 
         return secretary['answer']
 
     @router(answer_user)
-    def decide_next(self, answer: str):
-        if "bye" in answer.lower():
+    def decide_next(self, result: str):
+        """Router that handles delegation and conversation flow"""
+
+        # Normalize the result for comparison
+        normalized_result = result.lower().replace('_', '').replace(' ', '')
+
+        # Check if this is a delegation request
+        if normalized_result in ['searchtopicrew', 'searchtopic']:
+            print("🔄 Routing to search topic handler...")
+            return self.handle_search_topic
+
+        # Add more delegation handlers here as needed
+        # elif normalized_result == 'schedulingcrew':
+        #     return self.handle_scheduling
+
+        # Check if conversation should end
+        if "bye" in result.lower():
             print("Conversation ended.")
             return None  # End the flow
-        else:
-            return self.translate_user_message  # Listen for the next user message
+
+        # Continue conversation - wait for next user message
+        return self.translate_user_message
+
+    @listen(decide_next)
+    def handle_search_topic(self):
+        """Handle search topic delegation"""
+        print("\n" + "="*80)
+        print("🔍 EXECUTING SEARCH TOPIC CREW")
+        print("="*80 + "\n")
+
+        # Extract topic from the user's translated message
+        topic = self.state.message.translation
+        current_year = datetime.now().year
+
+        # Execute SearchTopicCrew
+        search_crew = SearchTopicCrew().crew()
+        search_result: CrewOutput = search_crew.kickoff(inputs={
+            "topic": topic,
+            "current_year": current_year,
+        })
+
+        # Store search results in state for secretary to use
+        print("\n" + "="*80)
+        print("📊 SEARCH RESULTS:")
+        print(search_result.raw)
+        print("="*80 + "\n")
+
+        # Store search results temporarily for the next step
+        # We'll use this to pass to the secretary
+        self.state.message.content = search_result.raw
+
+        # Add search results to history for context
+        self.state.add_assistant_message(
+            content=f"[SEARCH RESULTS FOR: {topic}]\n\n{search_result.raw}",
+            translation=None,
+        )
+
+        # Now route to provide final answer with search context
+        return self.provide_final_answer_with_context()
+
+    def provide_final_answer_with_context(self):
+        """Secretary provides final answer using search results"""
+        print("\n" + "="*80)
+        print("💬 SECRETARY PROVIDING FINAL ANSWER WITH CONTEXT")
+        print("="*80 + "\n")
+
+        # Get the original question and search results
+        original_question = self.state.history[0].translation if self.state.history else "the user's question"
+        search_results = self.state.message.content
+
+        # Ask secretary to synthesize answer using search results
+        crew = SecretaryCrew().crew()
+        secretary: CrewOutput = crew.kickoff(inputs={
+            "message": f"""The user asked: "{original_question}"
+
+Here are the search results:
+
+{search_results}
+
+Based on these search results, provide a clear, concise answer to the user's question. Focus on directly answering what they asked for - don't mention that you're searching or delegating. Just provide the answer based on the information above.""",
+        })
+
+        if secretary.pydantic is None:
+            raise ValueError("Expected pydantic output from SecretaryCrew")
+
+        # Translate back to user's language
+        translator = TranslationCrew(reset=True).crew()
+        translation: CrewOutput = translator.kickoff(inputs={
+            "content": secretary['answer'],
+            "history": [m.model_dump() for m in self.state.history],
+        })
+
+        self.state.add_assistant_message(
+            content=secretary['answer'],
+            translation=translation['output'],
+        )
+
+        print("\n" + "="*80)
+        print("ENGLISH ANSWER:", secretary['answer'])
+        print("TRANSLATED ANSWER:", translation['output'])
+        print("="*80 + "\n")
+
+        return secretary['answer']
 
 
 
