@@ -20,3 +20,16 @@ detect_language:
     - Cultural context notes
     - Recommended response language and style
   agent: language_detector
+
+translate_to_original:
+  description: >
+    Analyze the input: "{content}"
+    
+    Previous conversation context: {history}
+    
+    Generate the translation back to the original language
+  expected_output: >
+    A literal and direct translation from english to the original language containing.
+  agent: language_detector
+
+
